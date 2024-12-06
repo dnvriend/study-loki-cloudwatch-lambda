@@ -1,0 +1,75 @@
+auth_enabled: false
+
+server:
+  http_listen_port: ${SERVER_HTTP_LISTEN_PORT:-3100}
+  grpc_listen_port: ${SERVER_GRPC_LISTEN_PORT:-9095}
+
+common:
+  ring:
+    instance_addr: ${COMMON_RING_INSTANCE_ADDRESS:-127.0.0.1}
+    kvstore:
+      store: inmemory
+  replication_factor: 1
+  path_prefix: /app/
+
+schema_config:
+  configs:
+    - from: 2020-05-15
+      store: boltdb-shipper
+      object_store: s3
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+storage_config:
+  boltdb_shipper:
+    active_index_directory: /app/boltdb-shipper-active
+    cache_location: /app/boltdb-shipper-cache
+    cache_ttl: 24h
+  aws:
+    s3: ${STORAGE_CONFIG_AWS_S3}
+    s3forcepathstyle: true
+    region: ${STORAGE_CONFIG_AWS_REGION}
+
+compactor:
+  working_directory: /app/compactor
+  compaction_interval: 5m
+
+querier:
+  # The maximum number of concurrent queries allowed.
+  max_concurrent: 2048 # default 10
+
+frontend:
+  # Maximum number of outstanding requests per tenant per frontend; requests beyond this error with HTTP 429.
+  max_outstanding_per_tenant: 2048 # default 2048
+  # Compress HTTP responses.
+  compress_responses: true
+
+limits_config:
+  allow_structured_metadata: false
+  # Maximum number of active streams per user, per ingester. 0 to disable.
+  max_streams_per_user: 0 # unlimited streams
+  # Maximum number of active streams per user, across the cluster. 0 to disable.
+  max_global_streams_per_user: 0 # default 5000
+  # Maximum accepted sample age before rejecting.
+  reject_old_samples_max_age: 1w # default 1w
+  # Whether or not old samples will be rejected.
+  reject_old_samples: true # default true
+  # Retention period to apply to stored data, only applies if retention_enabled is true in the compactor config.
+  retention_period: 0 # default 0
+  # Limit the maximum of unique series that is returned by a metric query. When the limit is reached an error is returned.
+  max_query_series: 100000 # default 500
+  # Maximum number of queries that will be scheduled in parallel by the frontend.
+  max_query_parallelism: 64 # default 32
+  # Maximum number of queries will be scheduled in parallel by the frontend for TSDB schemas.
+  tsdb_max_query_parallelism: 512 # default 512
+  # Limit how far back in time series data and metadata can be queried, up until
+  # lookback duration ago.
+  max_query_lookback: 0s # default 0s
+  # The limit to length of chunk store queries. 0 to disable.
+  max_query_length: 0 # default 30d1h
+  # Timeout when querying backends (ingesters or storage) during the execution of
+  # a query request. When a specific per-tenant timeout is used, the global
+  # timeout is ignored.
+  query_timeout: 2m # default 1m
